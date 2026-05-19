@@ -232,6 +232,34 @@ def upsert_search(source: str, name: str, url: str, note: str):
         return cur.lastrowid
 
 
+def archive_listings_not_in(urls: set[str]) -> int:
+    """Arhivira sve listings koji nisu u CSV-u. Vraca broj arhiviranih."""
+    if not urls:
+        return 0
+    placeholders = ",".join("?" * len(urls))
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"""UPDATE listings SET status = 'archived', updated_at = ?
+                WHERE status != 'archived' AND url NOT IN ({placeholders})""",
+            (now_iso(), *urls),
+        )
+        return cur.rowcount
+
+
+def deactivate_searches_not_in(urls: set[str]) -> int:
+    """Deaktivira sve searches koje nisu u CSV-u. Vraca broj deaktiviranih."""
+    if not urls:
+        return 0
+    placeholders = ",".join("?" * len(urls))
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"""UPDATE searches SET is_active = 0
+                WHERE is_active = 1 AND url NOT IN ({placeholders})""",
+            (*urls,),
+        )
+        return cur.rowcount
+
+
 def get_seen_urls_for_search(search_id: int) -> set[str]:
     with get_conn() as conn:
         rows = conn.execute(
