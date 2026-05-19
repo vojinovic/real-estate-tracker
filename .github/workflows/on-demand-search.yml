@@ -36,13 +36,14 @@ jobs:
         run: python -m playwright install --with-deps chromium
 
       - name: Run on-demand search
+        env:
+          SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
         run: python -m app.ondemand_search "${{ inputs.url }}" "${{ inputs.label }}"
 
       - name: Commit search results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          mkdir -p data
           git add data/last_ondemand_search.json
           if git diff --staged --quiet; then
             echo "No changes to commit."
