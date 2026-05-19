@@ -48,24 +48,25 @@ def _build_headers() -> dict:
     }
 
 
-def _fetch_with_requests(url: str) -> str | None:
+def _fetch_with_requests(url: str) -> tuple[str | None, str]:
+    """Vraca (html, status_message)."""
     try:
         resp = requests.get(url, headers=_build_headers(), timeout=REQUEST_TIMEOUT)
         if resp.status_code == 200:
-            return resp.text
-        return None
-    except requests.RequestException:
-        return None
+            return resp.text, f"requests ok ({len(resp.text)} bytes)"
+        return None, f"requests HTTP {resp.status_code}"
+    except requests.RequestException as e:
+        return None, f"requests exception: {type(e).__name__}: {e}"
 
 
-def _fetch_with_playwright(url: str) -> str | None:
-    """Fallback ako requests vrati None ili 403. Sporiji ali stabilniji."""
+def _fetch_with_playwright(url: str) -> tuple[str | None, str]:
+    """Vraca (html, status_message). Sporiji ali stabilniji fallback."""
     if not USE_PLAYWRIGHT_FALLBACK:
-        return None
+        return None, "playwright disabled"
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        return None
+        return None, "playwright not installed"
 
     try:
         with sync_playwright() as p:
@@ -75,21 +76,27 @@ def _fetch_with_playwright(url: str) -> str | None:
                 locale="sr-RS",
             )
             page = context.new_page()
-            page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            # Halo oglasi ucitava strukturirane podatke u <script>, tu ne treba cekati JS interakciju.
+            response = page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            status = response.status if response else None
             html = page.content()
             browser.close()
-            return html
-    except Exception:
-        return None
+            if status and status != 200:
+                return None, f"playwright HTTP {status}"
+            return html, f"playwright ok ({len(html)} bytes)"
+    except Exception as e:
+        return None, f"playwright exception: {type(e).__name__}: {e}"
 
 
 def fetch_page(url: str) -> str | None:
-    """Pokusava requests, ako pukne fallback na Playwright."""
-    html = _fetch_with_requests(url)
+    """Pokusava requests, ako pukne fallback na Playwright. Loguje status."""
+    html, msg = _fetch_with_requests(url)
     if html and len(html) > 1000:
+        print(f"     [fetch] {msg}")
         return html
-    return _fetch_with_playwright(url)
+    print(f"     [fetch] {msg} -> playwright fallback")
+    html, msg = _fetch_with_playwright(url)
+    print(f"     [fetch] {msg}")
+    return html
 
 
 # ---------- Detail page parsing ----------
@@ -185,6 +192,7 @@ def parse_listing(html: str) -> ListingData:
 
     # 1. Pokusaj QuidditaEnvironment - najpouzdaniji izvor
     quiddita = _extract_quiddita_data(html)
+    quiddita_keys = list(quiddita.keys())[:10] if quiddita else None
     if quiddita:
         title = quiddita.get("Title") or quiddita.get("TextHtml")
         price_raw = quiddita.get("Price") or quiddita.get("ListingPriceValue")
@@ -232,6 +240,10 @@ def parse_listing(html: str) -> ListingData:
 
     if price is not None and area_m2 and area_m2 > 0:
         price_per_m2 = round(price / area_m2, 2)
+
+    # Debug: ako nema cene, ispisi sta je nadjeno
+    if price is None:
+        print(f"     [parse] no price found. quiddita keys: {quiddita_keys}, title: {title!r}, html_len: {len(html)}")
 
     return ListingData(
         title=title.strip() if title else None,
