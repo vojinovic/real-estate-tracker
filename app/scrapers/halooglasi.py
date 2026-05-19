@@ -14,6 +14,8 @@ from app.config import (
     MIN_DELAY_SECONDS,
     MAX_DELAY_SECONDS,
     USE_PLAYWRIGHT_FALLBACK,
+    SCRAPERAPI_KEY,
+    SCRAPERAPI_ENDPOINT,
 )
 
 
@@ -46,6 +48,24 @@ def _build_headers() -> dict:
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1",
     }
+
+
+def _fetch_with_scraperapi(url: str) -> tuple[str | None, str]:
+    """Fetch preko ScraperAPI proxy-ja (rezidencijalni IP)."""
+    if not SCRAPERAPI_KEY:
+        return None, "scraperapi key not configured"
+    try:
+        params = {
+            "api_key": SCRAPERAPI_KEY,
+            "url": url,
+            "country_code": "rs",  # srpski IP za lokalne sajtove
+        }
+        resp = requests.get(SCRAPERAPI_ENDPOINT, params=params, timeout=REQUEST_TIMEOUT)
+        if resp.status_code == 200:
+            return resp.text, f"scraperapi ok ({len(resp.text)} bytes)"
+        return None, f"scraperapi HTTP {resp.status_code}"
+    except requests.RequestException as e:
+        return None, f"scraperapi exception: {type(e).__name__}: {e}"
 
 
 def _fetch_with_requests(url: str) -> tuple[str | None, str]:
@@ -88,7 +108,17 @@ def _fetch_with_playwright(url: str) -> tuple[str | None, str]:
 
 
 def fetch_page(url: str) -> str | None:
-    """Pokusava requests, ako pukne fallback na Playwright. Loguje status."""
+    """Strategija:
+    1. Ako je SCRAPERAPI_KEY postavljen -> koristi ScraperAPI (rezidencijalni IP).
+    2. Inace -> obican requests, pa Playwright kao fallback (samo za lokalno testiranje).
+    """
+    if SCRAPERAPI_KEY:
+        html, msg = _fetch_with_scraperapi(url)
+        print(f"     [fetch] {msg}")
+        if html and len(html) > 1000:
+            return html
+        return None
+
     html, msg = _fetch_with_requests(url)
     if html and len(html) > 1000:
         print(f"     [fetch] {msg}")
