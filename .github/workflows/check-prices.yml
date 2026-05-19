@@ -2,7 +2,7 @@ name: Check Real Estate Prices
 
 on:
   schedule:
-    # Svakog dana u 06:30 UTC (~07:30-08:30 po srpskom vremenu)
+    # Svakog dana u 06:30 UTC (~07:30-08:30 po srpskom vremenu, zavisi od leta/zime)
     - cron: '30 6 * * *'
   workflow_dispatch:  # Manualni trigger iz GitHub UI
 
@@ -34,17 +34,17 @@ jobs:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
         run: python -m app.tracker
 
       - name: Commit database changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          mkdir -p data
-          git add data/
+          git add data/tracker.db
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: update tracker data [skip ci]"
+            git commit -m "chore: update tracker.db [skip ci]"
             git push
           fi
