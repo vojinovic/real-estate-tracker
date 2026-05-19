@@ -38,14 +38,14 @@ def detect_source(url: str) -> str:
     return "unknown"
 
 
-def sync_listings_csv():
-    """Ucitava listings.csv i upsert-uje u bazu."""
+def sync_listings_csv() -> set[str]:
+    """Ucitava listings.csv i upsert-uje u bazu. Vraca skup URL-ova iz CSV-a."""
+    urls: set[str] = set()
     if not LISTINGS_CSV.exists():
         print(f"[sync] {LISTINGS_CSV} ne postoji, preskacem.")
-        return
+        return urls
     with open(LISTINGS_CSV, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        count = 0
         for row in reader:
             url = (row.get("url") or "").strip()
             if not url:
@@ -57,18 +57,19 @@ def sync_listings_csv():
                 location=(row.get("city") or "").strip(),
                 note=(row.get("note") or "").strip(),
             )
-            count += 1
-        print(f"[sync] listings.csv: {count} oglasa.")
+            urls.add(url)
+        print(f"[sync] listings.csv: {len(urls)} oglasa.")
+    return urls
 
 
-def sync_searches_csv():
-    """Ucitava searches.csv i upsert-uje u bazu."""
+def sync_searches_csv() -> set[str]:
+    """Ucitava searches.csv i upsert-uje u bazu. Vraca skup URL-ova iz CSV-a."""
+    urls: set[str] = set()
     if not SEARCHES_CSV.exists():
         print(f"[sync] {SEARCHES_CSV} ne postoji, preskacem.")
-        return
+        return urls
     with open(SEARCHES_CSV, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        count = 0
         for row in reader:
             url = (row.get("url") or "").strip()
             if not url:
@@ -79,8 +80,9 @@ def sync_searches_csv():
                 url=url,
                 note=(row.get("note") or "").strip(),
             )
-            count += 1
-        print(f"[sync] searches.csv: {count} pretraga.")
+            urls.add(url)
+        print(f"[sync] searches.csv: {len(urls)} pretraga.")
+    return urls
 
 
 def check_listings():
@@ -175,8 +177,16 @@ def export_dashboard():
 
 def main():
     db.init_db()
-    sync_listings_csv()
-    sync_searches_csv()
+    listing_urls = sync_listings_csv()
+    search_urls = sync_searches_csv()
+
+    archived = db.archive_listings_not_in(listing_urls)
+    if archived:
+        print(f"[archive] {archived} oglasa arhivirano (nisu u listings.csv)")
+    deactivated = db.deactivate_searches_not_in(search_urls)
+    if deactivated:
+        print(f"[archive] {deactivated} pretraga deaktivirano (nisu u searches.csv)")
+
     check_listings()
     check_searches()
     export_dashboard()
