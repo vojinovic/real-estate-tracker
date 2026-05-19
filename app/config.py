@@ -16,6 +16,10 @@ EMAIL_FROM = os.getenv("EMAIL_FROM", "")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
 EMAIL_TO = os.getenv("EMAIL_TO", "")
 
+# ScraperAPI (rezidencijalni IP-ovi - resava 403 blokade)
+SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "")
+SCRAPERAPI_ENDPOINT = "https://api.scraperapi.com/"
+
 # Scraper config
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -23,12 +27,12 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 ]
 
-REQUEST_TIMEOUT = 20
-MIN_DELAY_SECONDS = 3
-MAX_DELAY_SECONDS = 8
+REQUEST_TIMEOUT = 60  # ScraperAPI moze biti sporiji od direktnog requesta
+MIN_DELAY_SECONDS = 1
+MAX_DELAY_SECONDS = 3
 
 # Posle koliko uzastopnih grešaka oglas se markira kao "nestao"
 ERROR_THRESHOLD_FOR_UNAVAILABLE = 3
 
-# Da li koristimo Playwright kao fallback kad requests pukne
+# Da li koristimo Playwright kao fallback kad requests pukne (samo lokalno; u CI je ScraperAPI primary)
 USE_PLAYWRIGHT_FALLBACK = True
