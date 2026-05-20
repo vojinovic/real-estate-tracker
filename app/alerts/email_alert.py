@@ -101,23 +101,64 @@ def alert_new_listings_in_search(search: dict, new_items: list):
     name = search.get("name") or "Pretraga"
     subject = f"Novi oglasi: {name} ({len(new_items)})"
 
-    text_lines = [f"Pronadjeno {len(new_items)} novih oglasa u pretrazi '{name}':\n"]
-    html_rows = []
+    text_lines = [f"Pronadjeno {len(new_items)} novih oglasa u pretrazi '{name}':", ""]
+    html_cards = []
     for item in new_items:
-        price_str = _fmt_price(item.price) if item.price else ""
-        text_lines.append(f"- {item.title or '(bez naslova)'} {price_str}\n  {item.url}")
-        html_rows.append(
-            f'<li><a href="{item.url}">{item.title or "(bez naslova)"}</a>'
-            f' <span style="color:#666;">{price_str}</span></li>'
+        title = item.title or "(bez naslova)"
+        price_str = _fmt_price(item.price) if item.price else "cena nije navedena"
+        loc = getattr(item, "location", None) or ""
+        area = getattr(item, "area_m2", None)
+        rooms = getattr(item, "rooms", None)
+        image = getattr(item, "image_url", None)
+        ppm2 = getattr(item, "price_per_m2", None)
+
+        # Text version
+        meta = []
+        if area: meta.append(f"{area}m2")
+        if rooms: meta.append(f"{rooms} soba")
+        if ppm2: meta.append(f"{_fmt_price(ppm2)}/m2")
+        meta_str = " | ".join(meta) if meta else ""
+
+        text_lines.append(f"- {title}")
+        text_lines.append(f"  {price_str}" + (f" ({meta_str})" if meta_str else ""))
+        if loc:
+            text_lines.append(f"  Lokacija: {loc}")
+        text_lines.append(f"  {item.url}")
+        text_lines.append("")
+
+        # HTML version - kartica sa slikom
+        img_html = (
+            f'<img src="{image}" style="width:120px;height:90px;object-fit:cover;border-radius:4px;margin-right:12px;float:left;" alt="">'
+            if image else ""
+        )
+        meta_html = (
+            f'<div style="color:#666;font-size:13px;margin-top:4px;">{meta_str}</div>'
+            if meta_str else ""
+        )
+        loc_html = (
+            f'<div style="color:#666;font-size:13px;margin-top:2px;">{loc}</div>'
+            if loc else ""
+        )
+        html_cards.append(
+            f'<div style="margin:16px 0;padding:12px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">'
+            f'{img_html}'
+            f'<div style="margin-left:{132 if image else 0}px;">'
+            f'<div style="font-weight:600;margin-bottom:4px;"><a href="{item.url}" style="color:#1a73e8;text-decoration:none;">{title}</a></div>'
+            f'<div style="color:#c62828;font-weight:600;">{price_str}</div>'
+            f'{meta_html}'
+            f'{loc_html}'
+            f'</div>'
+            f'<div style="clear:both;"></div>'
+            f'</div>'
         )
 
     text = "\n".join(text_lines)
     html = f"""
-    <html><body style="font-family: Arial, sans-serif;">
+    <html><body style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
         <h2 style="color: #2e7d32;">Novi oglasi u pretrazi: {name}</h2>
         <p>Pronadjeno <strong>{len(new_items)}</strong> novih oglasa od poslednje provere.</p>
-        <ul>{''.join(html_rows)}</ul>
-        <p style="color:#666; font-size:12px;">Pretraga: <a href="{search['url']}">{search['url']}</a></p>
+        {''.join(html_cards)}
+        <p style="color:#999; font-size:11px; margin-top:24px;">Pretraga: <a href="{search['url']}">{search['url']}</a></p>
     </body></html>
     """
     return _send_email(subject, html, text)
