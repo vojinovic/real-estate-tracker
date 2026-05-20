@@ -7,6 +7,8 @@ Logika:
 4. Za svaki aktivni search: scrape rezultate, alert za nove listinge
 5. Eksportuje data/dashboard.json za frontend
 """
+from __future__ import annotations
+
 import csv
 import json
 import sys
