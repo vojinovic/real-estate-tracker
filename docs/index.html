@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Estate Tracker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  line-height: 1.5;
+}
+.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+header {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  padding: 32px 0;
+  margin-bottom: 24px;
+}
+header .container { padding-top: 0; padding-bottom: 0; }
+header h1 { font-size: 28px; margin-bottom: 8px; }
+header .subtitle { opacity: 0.8; font-size: 14px; }
+header .generated-at { opacity: 0.6; font-size: 12px; margin-top: 8px; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.stat {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e5e5e7;
+}
+.stat .value { font-size: 28px; font-weight: 700; color: #1e3c72; }
+.stat .label { font-size: 13px; color: #6e6e73; margin-top: 4px; }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #e5e5e7;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+.tab {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6e6e73;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.tab:hover { color: #1d1d1f; }
+.tab.active { color: #1e3c72; border-bottom-color: #1e3c72; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+.card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e5e7;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.card-image {
+  width: 100%;
+  height: 180px;
+  background: #f0f0f3 center/cover no-repeat;
+  position: relative;
+}
+.card-image.no-image::after {
+  content: "Nema slike";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 13px;
+}
+.card-body { padding: 16px; }
+.card-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-title a { color: inherit; text-decoration: none; }
+.card-title a:hover { color: #1e3c72; }
+.card-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: #c62828;
+  margin-bottom: 8px;
+}
+.card-price.price-drop { color: #2e7d32; }
+.card-price-change {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.price-change-down {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.price-change-up {
+  background: #ffebee;
+  color: #c62828;
+}
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #6e6e73;
+  margin-bottom: 8px;
+}
+.card-meta span::before { content: ""; }
+.card-location {
+  font-size: 12px;
+  color: #6e6e73;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f0f0f3;
+  color: #6e6e73;
+}
+.badge.active { background: #e3f2fd; color: #1565c0; }
+.badge.unavailable { background: #ffebee; color: #c62828; }
+.badge.pending { background: #fff3e0; color: #ef6c00; }
+.badge.new { background: #e8f5e9; color: #2e7d32; }
+.badge.agency { background: #f3e5f5; color: #7b1fa2; }
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6e6e73;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.filters select, .filters input {
+  padding: 8px 12px;
+  border: 1px solid #e5e5e7;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  font-family: inherit;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.section-header h2 { font-size: 20px; font-weight: 600; }
+.section-header .meta { font-size: 13px; color: #6e6e73; }
+
+.add-form {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e5e5e7;
+  max-width: 700px;
+}
+.add-form h3 { margin-bottom: 16px; }
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #6e6e73;
+}
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e5e7;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #1e3c72;
+}
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-primary { background: #1e3c72; color: white; }
+.btn-primary:hover { background: #163055; }
+.btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+.btn-secondary { background: #f0f0f3; color: #1d1d1f; }
+.btn-secondary:hover { background: #e0e0e3; }
+
+.search-section {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e5e7;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.search-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.search-section-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.search-section-header .url-link {
+  font-size: 12px;
+  color: #6e6e73;
+  text-decoration: none;
+}
+.search-section-header .url-link:hover { color: #1e3c72; }
+
+.history-sparkline {
+  height: 30px;
+  margin-top: 8px;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+.alert-info { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+.alert-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.alert-error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+
+.config-banner {
+  background: #fff3e0;
+  border: 1px solid #ffe0b2;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #ef6c00;
+}
+.config-banner button {
+  margin-left: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #ef6c00;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+}
+.modal h3 { margin-bottom: 12px; }
+.modal p { margin-bottom: 16px; color: #6e6e73; font-size: 14px; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+@media (max-width: 600px) {
+  .container { padding: 16px; }
+  header { padding: 24px 0; }
+  header h1 { font-size: 22px; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .cards-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>Real Estate Tracker</h1>
+    <div class="subtitle">Pracenje cena nekretnina na Halo oglasima</div>
+    <div class="generated-at" id="generatedAt"></div>
+  </div>
+</header>
+
+<div class="container">
+  <div id="configBanner" class="config-banner" style="display:none;">
+    GitHub token nije postavljen. Mozes da gledas dashboard, ali ne mozes da dodajes oglase.
+    <button onclick="openConfigModal()">Postavi</button>
+  </div>
+
+  <div class="stats" id="statsContainer"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="listings">Pra\u0107eni oglasi</button>
+    <button class="tab" data-tab="searches">Pretrage</button>
+    <button class="tab" data-tab="add-listing">Dodaj oglas</button>
+    <button class="tab" data-tab="add-search">Dodaj pretragu</button>
+  </div>
+
+  <div id="tab-listings" class="tab-content active">
+    <div class="section-header">
+      <h2>Oglasi koje pratim</h2>
+      <div class="meta" id="listingsCount"></div>
+    </div>
+    <div class="filters">
+      <input type="text" id="listingFilter" placeholder="Filtriraj po nazivu...">
+      <select id="listingStatusFilter">
+        <option value="">Sve</option>
+        <option value="active">Aktivni</option>
+        <option value="pending">Nije skeniran</option>
+        <option value="unavailable">Nedostupni</option>
+      </select>
+    </div>
+    <div class="cards-grid" id="listingsGrid"></div>
+  </div>
+
+  <div id="tab-searches" class="tab-content">
+    <div class="section-header">
+      <h2>Pretrage koje pratim</h2>
+      <div class="meta" id="searchesCount"></div>
+    </div>
+    <div id="searchesContainer"></div>
+  </div>
+
+  <div id="tab-add-listing" class="tab-content">
+    <div class="add-form">
+      <h3>Dodaj novi oglas</h3>
+      <p style="color:#6e6e73; font-size:13px; margin-bottom:16px;">
+        Zalepi URL oglasa sa halooglasi.com. Tracker ce ga proveravati svaki put kad pokrenes <code>./run.sh</code>.
+      </p>
+      <div class="form-group">
+        <label for="newListingUrl">URL oglasa</label>
+        <input type="url" id="newListingUrl" placeholder="https://www.halooglasi.com/nekretnine/prodaja-stanova/...">
+      </div>
+      <div class="form-group">
+        <label for="newListingType">Tip</label>
+        <select id="newListingType">
+          <option value="stan">Stan</option>
+          <option value="kuca">Kuca</option>
+          <option value="lokal">Lokal</option>
+          <option value="kancelarija">Kancelarija</option>
+          <option value="placevi">Placevi</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="newListingCity">Grad</label>
+        <input type="text" id="newListingCity" placeholder="Nis" value="Nis">
+      </div>
+      <div class="form-group">
+        <label for="newListingNote">Bele\u0161ka (interni opis)</label>
+        <input type="text" id="newListingNote" placeholder="npr. Durlan dvosoban">
+      </div>
+      <button class="btn btn-primary" id="addListingBtn" onclick="addListing()">Dodaj u tracker</button>
+      <div id="addListingResult"></div>
+    </div>
+  </div>
+
+  <div id="tab-add-search" class="tab-content">
+    <div class="add-form">
+      <h3>Dodaj novu pretragu</h3>
+      <p style="color:#6e6e73; font-size:13px; margin-bottom:16px;">
+        Otvori halooglasi, podesi filtere (grad, cena, kvadratura), pa zalepi URL iz adresne linije.
+        Tracker ce te obavestiti email-om kad se pojave novi oglasi koji odgovaraju toj pretrazi.
+      </p>
+      <div class="form-group">
+        <label for="newSearchName">Naziv pretrage</label>
+        <input type="text" id="newSearchName" placeholder="npr. Stanovi Nis do 80k">
+      </div>
+      <div class="form-group">
+        <label for="newSearchUrl">URL pretrage</label>
+        <input type="url" id="newSearchUrl" placeholder="https://www.halooglasi.com/nekretnine/prodaja-stanova/nis?cena_d_to=80000">
+      </div>
+      <div class="form-group">
+        <label for="newSearchNote">Beleska</label>
+        <input type="text" id="newSearchNote" placeholder="opciono">
+      </div>
+      <button class="btn btn-primary" onclick="addSearch()">Dodaj pretragu</button>
+      <div id="addSearchResult"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Config modal -->
+<div id="configModal" class="modal-overlay">
+  <div class="modal">
+    <h3>GitHub konfiguracija</h3>
+    <p>
+      Za dodavanje oglasa kroz dashboard treba ti <strong>GitHub Personal Access Token (PAT)</strong>.
+      Token se cuva samo u tvom browseru (localStorage), nije nigde poslat.
+    </p>
+    <p style="font-size:12px;">
+      Token napravi na: <a href="https://github.com/settings/tokens/new?scopes=repo&description=real-estate-tracker" target="_blank">github.com/settings/tokens/new</a>.
+      Izaberi scope <code>repo</code>, klikni Generate, kopiraj token.
+    </p>
+    <div class="form-group">
+      <label for="configRepoOwner">GitHub username</label>
+      <input type="text" id="configRepoOwner" placeholder="vojinovic">
+    </div>
+    <div class="form-group">
+      <label for="configRepoName">Repo name</label>
+      <input type="text" id="configRepoName" placeholder="real-estate-tracker">
+    </div>
+    <div class="form-group">
+      <label for="configToken">Personal Access Token</label>
+      <input type="password" id="configToken" placeholder="ghp_...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeConfigModal()">Otkazi</button>
+      <button class="btn btn-primary" onclick="saveConfig()">Sa\u010duvaj</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG_KEY = "real-estate-tracker:config";
+let config = loadConfig();
+let dashboardData = null;
+
+function loadConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(CONFIG_KEY)) || {
+      repoOwner: "",
+      repoName: "real-estate-tracker",
+      token: "",
+    };
+  } catch {
+    return { repoOwner: "", repoName: "real-estate-tracker", token: "" };
+  }
+}
+
+function saveConfig() {
+  const cfg = {
+    repoOwner: document.getElementById("configRepoOwner").value.trim(),
+    repoName: document.getElementById("configRepoName").value.trim() || "real-estate-tracker",
+    token: document.getElementById("configToken").value.trim(),
+  };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+  config = cfg;
+  closeConfigModal();
+  checkConfigBanner();
+  loadData();
+}
+
+function openConfigModal() {
+  document.getElementById("configRepoOwner").value = config.repoOwner;
+  document.getElementById("configRepoName").value = config.repoName;
+  document.getElementById("configToken").value = config.token;
+  document.getElementById("configModal").classList.add("active");
+}
+
+function closeConfigModal() {
+  document.getElementById("configModal").classList.remove("active");
+}
+
+function checkConfigBanner() {
+  document.getElementById("configBanner").style.display =
+    (config.repoOwner && config.token) ? "none" : "block";
+}
+
+// ============================================================
+// DATA LOADING
+// ============================================================
+async function loadData() {
+  try {
+    // Probaj prvo iz lokalnog dashboard.json (kad se otvori sa GitHub Pages-a)
+    // Pa fallback na GitHub raw URL ako je owner postavljen
+    let url = "data/dashboard.json";
+    let response = await fetch(url + "?t=" + Date.now());
+
+    if (!response.ok && config.repoOwner) {
+      url = `https://raw.githubusercontent.com/${config.repoOwner}/${config.repoName}/main/data/dashboard.json`;
+      response = await fetch(url + "?t=" + Date.now());
+    }
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    dashboardData = await response.json();
+    render();
+  } catch (err) {
+    document.getElementById("listingsGrid").innerHTML =
+      `<div class="empty-state">Ne mogu da u\u010ditam podatke: ${err.message}<br><br>Otvori dashboard kroz GitHub Pages ili podesi GitHub config gore.</div>`;
+  }
+}
+
+// ============================================================
+// FORMATTING
+// ============================================================
+function fmtPrice(value, currency = "€") {
+  if (value == null) return "n/a";
+  return new Intl.NumberFormat('sr-RS', { maximumFractionDigits: 0 }).format(value) + " " + currency;
+}
+
+function fmtArea(value) {
+  if (value == null) return "";
+  return value + " m\u00b2";
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function fmtRelativeTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60) return "pre nekoliko sekundi";
+  if (diff < 3600) return `pre ${Math.floor(diff/60)} min`;
+  if (diff < 86400) return `pre ${Math.floor(diff/3600)} h`;
+  return `pre ${Math.floor(diff/86400)} dana`;
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function render() {
+  if (!dashboardData) return;
+
+  document.getElementById("generatedAt").textContent =
+    "Poslednji refresh: " + fmtRelativeTime(dashboardData.generated_at);
+
+  renderStats();
+  renderListings();
+  renderSearches();
+}
+
+function renderStats() {
+  const listings = dashboardData.listings || [];
+  const searches = dashboardData.searches || [];
+  const active = listings.filter(l => l.status === "active").length;
+
+  // Cena pala u poslednjih 7 dana
+  const weekAgo = Date.now() - 7 * 86400000;
+  const droppedCount = listings.filter(l => {
+    return (l.history || []).some(h =>
+      h.change_amount && h.change_amount < 0 && new Date(h.checked_at) > weekAgo
+    );
+  }).length;
+
+  // Ukupno prefetched (svi oglasi vidjeni u pretragama)
+  const totalPrefetched = searches.reduce((sum, s) => sum + (s.prefetched || []).length, 0);
+
+  document.getElementById("statsContainer").innerHTML = `
+    <div class="stat"><div class="value">${active}</div><div class="label">Aktivnih oglasa</div></div>
+    <div class="stat"><div class="value">${searches.length}</div><div class="label">Pretraga</div></div>
+    <div class="stat"><div class="value">${totalPrefetched}</div><div class="label">Vidjenih oglasa</div></div>
+    <div class="stat"><div class="value">${droppedCount}</div><div class="label">Cena pala (7d)</div></div>
+  `;
+}
+
+function renderListings() {
+  const listings = dashboardData.listings || [];
+  const filter = document.getElementById("listingFilter").value.toLowerCase();
+  const statusFilter = document.getElementById("listingStatusFilter").value;
+
+  const filtered = listings.filter(l => {
+    if (statusFilter && l.status !== statusFilter) return false;
+    if (!filter) return true;
+    const text = (l.title || "") + " " + (l.note || "") + " " + (l.location || "");
+    return text.toLowerCase().includes(filter);
+  });
+
+  document.getElementById("listingsCount").textContent =
+    `${filtered.length} od ${listings.length} oglasa`;
+
+  if (filtered.length === 0) {
+    document.getElementById("listingsGrid").innerHTML =
+      '<div class="empty-state">Nema oglasa. Dodaj prvi preko taba "Dodaj oglas".</div>';
+    return;
+  }
+
+  document.getElementById("listingsGrid").innerHTML = filtered.map(l => {
+    const history = l.history || [];
+    const firstPrice = l.first_seen_price;
+    const currentPrice = l.current_price;
+    let priceChange = "";
+    if (firstPrice && currentPrice && firstPrice !== currentPrice) {
+      const diff = currentPrice - firstPrice;
+      const pct = (diff / firstPrice * 100).toFixed(1);
+      const isDown = diff < 0;
+      const klass = isDown ? "price-change-down" : "price-change-up";
+      const sign = isDown ? "" : "+";
+      priceChange = `<span class="card-price-change ${klass}">${sign}${pct}%</span>`;
+    }
+
+    const sparkline = renderSparkline(history);
+    const priceKlass = (firstPrice && currentPrice && currentPrice < firstPrice) ? "price-drop" : "";
+
+    return `
+      <div class="card">
+        <div class="card-image no-image"></div>
+        <div class="card-body">
+          <div class="card-title"><a href="${l.url}" target="_blank">${l.title || l.note || "(bez naslova)"}</a></div>
+          <div class="card-price ${priceKlass}">${fmtPrice(currentPrice)}${priceChange}</div>
+          <div class="card-meta">
+            ${l.area_m2 ? `<span>${fmtArea(l.area_m2)}</span>` : ""}
+            ${l.price_per_m2 ? `<span>${fmtPrice(l.price_per_m2)}/m\u00b2</span>` : ""}
+          </div>
+          <div class="card-location">${l.location || ""} \u2022 ${l.property_type || ""}</div>
+          <div class="card-badges">
+            <span class="badge ${l.status}">${l.status}</span>
+            ${l.note ? `<span class="badge">${l.note}</span>` : ""}
+          </div>
+          ${sparkline ? `<div class="history-sparkline">${sparkline}</div>` : ""}
+          <div style="font-size:11px;color:#999;margin-top:8px;">
+            Skeniran ${fmtRelativeTime(l.last_checked_at)} \u2022 ${history.length} provera
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderSparkline(history) {
+  if (!history || history.length < 2) return "";
+  const prices = history.map(h => h.price).filter(p => p != null);
+  if (prices.length < 2) return "";
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+  const width = 280, height = 30;
+  const step = width / (prices.length - 1);
+
+  const points = prices.map((p, i) => {
+    const x = i * step;
+    const y = height - ((p - min) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(" ");
+
+  const lastIsDown = prices[prices.length-1] < prices[0];
+  const color = lastIsDown ? "#2e7d32" : "#1565c0";
+
+  return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width:100%;height:30px;">
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"/>
+  </svg>`;
+}
+
+function renderSearches() {
+  const searches = dashboardData.searches || [];
+  document.getElementById("searchesCount").textContent = `${searches.length} pretraga`;
+
+  if (searches.length === 0) {
+    document.getElementById("searchesContainer").innerHTML =
+      '<div class="empty-state">Nema pretraga. Dodaj prvu preko taba "Dodaj pretragu".</div>';
+    return;
+  }
+
+  document.getElementById("searchesContainer").innerHTML = searches.map(s => {
+    const items = s.prefetched || [];
+    const cards = items.map(item => `
+      <div class="card">
+        <div class="card-image ${item.image_url ? '' : 'no-image'}" style="${item.image_url ? `background-image:url('${item.image_url}')` : ''}"></div>
+        <div class="card-body">
+          <div class="card-title"><a href="${item.listing_url}" target="_blank">${item.title || "(bez naslova)"}</a></div>
+          <div class="card-price">${fmtPrice(item.price)}</div>
+          <div class="card-meta">
+            ${item.area_m2 ? `<span>${fmtArea(item.area_m2)}</span>` : ""}
+            ${item.rooms ? `<span>${item.rooms} soba</span>` : ""}
+            ${item.floor ? `<span>${item.floor}</span>` : ""}
+            ${item.price_per_m2 ? `<span>${fmtPrice(item.price_per_m2)}/m\u00b2</span>` : ""}
+          </div>
+          <div class="card-location">${item.location || ""}</div>
+          <div class="card-badges">
+            ${item.advertiser_type === 'agencija' ? '<span class="badge agency">Agencija</span>' : ''}
+            ${item.publish_date ? `<span class="badge">${item.publish_date}</span>` : ""}
+            <button class="badge" style="cursor:pointer;border:none;font-family:inherit;" onclick="trackThisListing('${item.listing_url}', \`${(item.title || '').replace(/`/g,'')}\`)">+ Prati</button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    return `
+      <div class="search-section">
+        <div class="search-section-header">
+          <div>
+            <h3>${s.name}</h3>
+            <a href="${s.url}" target="_blank" class="url-link">${s.url}</a>
+          </div>
+          <div class="meta">${items.length} oglasa \u2022 osvezeno ${fmtRelativeTime(s.last_checked_at)}</div>
+        </div>
+        <div class="cards-grid">${cards}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ============================================================
+// ADDING LISTINGS / SEARCHES via GitHub API
+// ============================================================
+async function githubGetFile(path) {
+  const { repoOwner, repoName, token } = config;
+  const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`;
+  const resp = await fetch(url, {
+    headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" }
+  });
+  if (!resp.ok) throw new Error(`Failed to fetch ${path}: ${resp.status}`);
+  const data = await resp.json();
+  return { content: atob(data.content), sha: data.sha };
+}
+
+async function githubUpdateFile(path, newContent, sha, commitMessage) {
+  const { repoOwner, repoName, token } = config;
+  const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`;
+  const resp = await fetch(url, {
+    method: "PUT",
+    headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" },
+    body: JSON.stringify({
+      message: commitMessage,
+      content: btoa(unescape(encodeURIComponent(newContent))),
+      sha: sha,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.message || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+function showResult(containerId, type, message) {
+  document.getElementById(containerId).innerHTML =
+    `<div class="alert alert-${type}" style="margin-top:16px;">${message}</div>`;
+}
+
+async function addListing() {
+  if (!config.token) {
+    openConfigModal();
+    return;
+  }
+  const url = document.getElementById("newListingUrl").value.trim();
+  const type = document.getElementById("newListingType").value;
+  const city = document.getElementById("newListingCity").value.trim();
+  const note = document.getElementById("newListingNote").value.trim();
+
+  if (!url || !url.includes("halooglasi.com")) {
+    showResult("addListingResult", "error", "URL mora biti sa halooglasi.com");
+    return;
+  }
+  if (note.includes(",")) {
+    showResult("addListingResult", "error", "Beleska ne sme da sadrzi zarez (CSV format).");
+    return;
+  }
+
+  const btn = document.getElementById("addListingBtn");
+  btn.disabled = true;
+  btn.textContent = "Dodajem...";
+  showResult("addListingResult", "info", "Pristupam GitHub-u...");
+
+  try {
+    const { content, sha } = await githubGetFile("listings.csv");
+    const lines = content.trim().split("\n");
+    const header = lines[0];
+    const rows = lines.slice(1).filter(l => l.trim() && !l.startsWith("id,url"));
+
+    // Proveri duplikat
+    if (rows.some(r => r.includes(url))) {
+      throw new Error("Oglas vec postoji u listings.csv");
+    }
+
+    const newId = rows.length > 0 ? Math.max(...rows.map(r => parseInt(r.split(",")[0]) || 0)) + 1 : 1;
+    const newRow = `${newId},${url},${type},${city},${note}`;
+    const newContent = header + "\n" + [...rows, newRow].join("\n") + "\n";
+
+    await githubUpdateFile("listings.csv", newContent, sha, `Add listing: ${note || url}`);
+    showResult("addListingResult", "success",
+      `Dodato! Pokreni <code>./run.sh</code> da skenira odmah, ili saceka da ce automatski u sledecem run-u.`);
+    document.getElementById("newListingUrl").value = "";
+    document.getElementById("newListingNote").value = "";
+  } catch (err) {
+    showResult("addListingResult", "error", err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Dodaj u tracker";
+  }
+}
+
+async function addSearch() {
+  if (!config.token) {
+    openConfigModal();
+    return;
+  }
+  const name = document.getElementById("newSearchName").value.trim();
+  const url = document.getElementById("newSearchUrl").value.trim();
+  const note = document.getElementById("newSearchNote").value.trim();
+
+  if (!name) {
+    showResult("addSearchResult", "error", "Naziv je obavezan.");
+    return;
+  }
+  if (!url || !url.includes("halooglasi.com")) {
+    showResult("addSearchResult", "error", "URL mora biti sa halooglasi.com");
+    return;
+  }
+  if (name.includes(",") || note.includes(",")) {
+    showResult("addSearchResult", "error", "Naziv i beleska ne smeju da sadrze zarez.");
+    return;
+  }
+
+  showResult("addSearchResult", "info", "Pristupam GitHub-u...");
+
+  try {
+    const { content, sha } = await githubGetFile("searches.csv");
+    const lines = content.trim().split("\n");
+    const header = lines[0];
+    const rows = lines.slice(1).filter(l => l.trim() && !l.startsWith("id,name"));
+
+    if (rows.some(r => r.includes(url))) {
+      throw new Error("Ova pretraga vec postoji u searches.csv");
+    }
+
+    const newId = rows.length > 0 ? Math.max(...rows.map(r => parseInt(r.split(",")[0]) || 0)) + 1 : 1;
+    const newRow = `${newId},${name},${url},${note}`;
+    const newContent = header + "\n" + [...rows, newRow].join("\n") + "\n";
+
+    await githubUpdateFile("searches.csv", newContent, sha, `Add search: ${name}`);
+    showResult("addSearchResult", "success",
+      `Pretraga dodata! Pokreni <code>./run.sh</code> da skenira odmah.`);
+    document.getElementById("newSearchName").value = "";
+    document.getElementById("newSearchUrl").value = "";
+    document.getElementById("newSearchNote").value = "";
+  } catch (err) {
+    showResult("addSearchResult", "error", err.message);
+  }
+}
+
+async function trackThisListing(url, title) {
+  if (!config.token) {
+    openConfigModal();
+    return;
+  }
+  // Preusmeri korisnika na add-listing tab sa pred-popunjenim poljima
+  document.querySelector('[data-tab="add-listing"]').click();
+  document.getElementById("newListingUrl").value = url;
+  document.getElementById("newListingNote").value = (title || "").slice(0, 50);
+  document.getElementById("newListingUrl").scrollIntoView({ behavior: "smooth" });
+}
+
+// ============================================================
+// TABS & FILTERS
+// ============================================================
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+document.getElementById("listingFilter").addEventListener("input", renderListings);
+document.getElementById("listingStatusFilter").addEventListener("change", renderListings);
+
+// ============================================================
+// INIT
+// ============================================================
+checkConfigBanner();
+loadData();
+
+// Auto-refresh svaki minut
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
