@@ -147,14 +147,11 @@ def check_searches():
         new_items = [r for r in results if r.url not in seen]
 
         for item in results:
-            db.add_seen_listing(search["id"], item.url, item.title, item.price)
+            db.add_seen_listing(search["id"], item)
         db.mark_search_checked(search["id"])
 
         # Snimi snapshot trenutnih rezultata za dashboard
-        db.replace_prefetched_for_search(
-            search["id"],
-            [{"url": r.url, "title": r.title, "price": r.price} for r in results],
-        )
+        db.replace_prefetched_for_search(search["id"], results)
 
         if new_items and seen:
             # seen je prazan na prvoj proveri => preskaci alert (sve bi bilo "novo")
