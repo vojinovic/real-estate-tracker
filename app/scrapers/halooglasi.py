@@ -35,6 +35,16 @@ class SearchResultItem:
     url: str
     title: str | None
     price: float | None
+    area_m2: float | None = None
+    price_per_m2: float | None = None
+    rooms: str | None = None
+    floor: str | None = None
+    image_url: str | None = None
+    location: str | None = None
+    description: str | None = None
+    listing_id: str | None = None
+    publish_date: str | None = None
+    advertiser_type: str | None = None  # agencija / privatno
 
 
 def polite_delay():
@@ -326,17 +336,144 @@ def parse_listing(html: str) -> ListingData:
 
 # ---------- Search results parsing ----------
 
-def parse_search_results(html: str, base_url: str = "https://www.halooglasi.com") -> list[SearchResultItem]:
-    """Izvlaci listu oglasa iz search rezultata.
-
-    Halo oglasi koristi <div class='product-item'> ili sl. wrapper. Selektori se ponekad menjaju
-    pa idemo defanzivno: trazimo svaki link koji vodi na detail stranicu nekretnine.
+def _parse_list_html(list_html: str) -> dict:
+    """Iz ListHTML komada (pre-renderovan HTML kartice oglasa) izvlaci:
+    cenu, kvadraturu, sobe, sprat, lokaciju, sliku, opis, datum, tip oglasivaca.
     """
+    import html as html_module
+    if not list_html:
+        return {}
+    # ListHTML dolazi HTML-encoded (&lt; &gt;), treba unescape
+    decoded = html_module.unescape(list_html)
+    soup = BeautifulSoup(decoded, "lxml")
+
+    result = {}
+
+    # Cena: <span data-value="74.000"><i>74.000 €</i></span>
+    price_el = soup.select_one(".central-feature span[data-value]")
+    if price_el:
+        # data-value je "74.000" -> 74000
+        dv = price_el.get("data-value", "").strip()
+        result["price"] = _parse_number(dv)
+
+    # Cena po m2: <div class="price-by-surface"><span>1.644 €/m²</span></div>
+    pps_el = soup.select_one(".price-by-surface span")
+    if pps_el:
+        result["price_per_m2"] = _parse_number(pps_el.get_text())
+
+    # Karakteristike: kvadratura, sobe, spratnost u ul.product-features
+    for li in soup.select(".product-features li"):
+        legend = li.select_one(".legend")
+        if not legend:
+            continue
+        legend_text = legend.get_text(strip=True).lower()
+        # Value je sve unutar value-wrapper-a minus legend
+        wrapper = li.select_one(".value-wrapper")
+        if not wrapper:
+            continue
+        # Izvuci tekst pre <span class="legend">
+        full_text = wrapper.get_text(separator=" ", strip=True)
+        value_text = full_text.replace(legend.get_text(strip=True), "").strip()
+
+        if "kvadratura" in legend_text:
+            result["area_m2"] = _parse_number(value_text)
+        elif "broj soba" in legend_text:
+            result["rooms"] = value_text
+        elif "spratnost" in legend_text or "sprat" in legend_text:
+            result["floor"] = value_text
+
+    # Slika: prva pi-img-wrapper > img
+    img_el = soup.select_one(".pi-img-wrapper img")
+    if img_el:
+        src = img_el.get("src", "")
+        if src and "no-image" not in src:
+            result["image_url"] = src
+
+    # Lokacija: ul.subtitle-places
+    places = [li.get_text(strip=True) for li in soup.select(".subtitle-places li")]
+    if places:
+        result["location"] = ", ".join(places)
+
+    # Opis
+    desc_el = soup.select_one(".text-description-list, .product-description")
+    if desc_el:
+        result["description"] = desc_el.get_text(strip=True)
+
+    # Datum: <span class="publish-date">15.05.2026.</span>
+    date_el = soup.select_one(".publish-date")
+    if date_el:
+        result["publish_date"] = date_el.get_text(strip=True)
+
+    # Tip oglasivaca: data-field-value="agencija" ili "fizicko-lice"
+    adv_el = soup.select_one("[data-field-name='oglasivac_nekretnine_s']")
+    if adv_el:
+        result["advertiser_type"] = adv_el.get("data-field-value") or adv_el.get_text(strip=True)
+
+    return result
+
+
+def parse_search_results(html: str, base_url: str = "https://www.halooglasi.com") -> list[SearchResultItem]:
+    """Izvlaci listu oglasa iz search rezultata koristeci QuidditaEnvironment.serverListData.
+
+    Halo oglasi vraca search rezultate kao JSON sa pre-renderovanim HTML komadom (ListHTML).
+    Iz JSON-a uzimamo Title i RelativeUrl, iz ListHTML-a izvlacimo strukturirane podatke.
+    """
+    items: list[SearchResultItem] = []
+
+    # Trazi serverListData
+    m = re.search(r'QuidditaEnvironment\.serverListData\s*=\s*(\{.*?\});', html, re.DOTALL)
+    if not m:
+        # Backup: stara strategija sa HTML linkovima
+        return _parse_search_results_fallback(html, base_url)
+
+    try:
+        data = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        return _parse_search_results_fallback(html, base_url)
+
+    ads = data.get("Ads") or []
+    for ad in ads:
+        if not isinstance(ad, dict):
+            continue
+
+        relative_url = ad.get("RelativeUrl")
+        title = ad.get("Title")
+        if not relative_url:
+            continue
+
+        # Skini query string parametre (kid=, sid=) za canonical URL
+        clean_url = relative_url.split("?")[0]
+        full_url = base_url + clean_url if clean_url.startswith("/") else clean_url
+
+        # Parse ListHTML za strukturirane podatke
+        list_html = ad.get("ListHTML") or ""
+        extracted = _parse_list_html(list_html)
+
+        items.append(SearchResultItem(
+            url=full_url,
+            title=title.strip() if title else None,
+            price=extracted.get("price"),
+            area_m2=extracted.get("area_m2"),
+            price_per_m2=extracted.get("price_per_m2"),
+            rooms=extracted.get("rooms"),
+            floor=extracted.get("floor"),
+            image_url=extracted.get("image_url"),
+            location=extracted.get("location"),
+            description=extracted.get("description"),
+            listing_id=str(ad.get("Id")) if ad.get("Id") else None,
+            publish_date=extracted.get("publish_date"),
+            advertiser_type=extracted.get("advertiser_type"),
+        ))
+
+    return items
+
+
+def _parse_search_results_fallback(html: str, base_url: str) -> list[SearchResultItem]:
+    """Fallback HTML parser - koristi se samo ako serverListData ne postoji."""
     soup = BeautifulSoup(html, "lxml")
     items: list[SearchResultItem] = []
     seen_urls: set[str] = set()
 
-    # Linkovi ka detail stranicama imaju /nekretnine/.../ID/ ili /5425... slug pattern
     listing_link_re = re.compile(r"/nekretnine/[^/]+/[^/]+/")
 
     for a in soup.find_all("a", href=True):
@@ -345,23 +482,16 @@ def parse_search_results(html: str, base_url: str = "https://www.halooglasi.com"
             continue
         if href.startswith("/"):
             href = base_url + href
-        # Filtriraj samo detail stranice (imaju numericki ID na kraju)
-        if not re.search(r"/\d{6,}/?$", href.split("?")[0]):
+        if not re.search(r"/\d{6,}", href.split("?")[0]):
             continue
-        if href in seen_urls:
-            continue
-        seen_urls.add(href)
 
-        # Pokusaj da nadjes naslov i cenu u nadleznom kontejneru
-        container = a.find_parent(["article", "div", "li"]) or a
+        clean_url = href.split("?")[0]
+        if clean_url in seen_urls:
+            continue
+        seen_urls.add(clean_url)
+
         title = a.get("title") or a.get_text(strip=True)[:200] or None
-
-        price = None
-        price_el = container.find(class_=re.compile(r"price", re.IGNORECASE))
-        if price_el:
-            price = _parse_number(price_el.get_text())
-
-        items.append(SearchResultItem(url=href, title=title, price=price))
+        items.append(SearchResultItem(url=clean_url, title=title, price=None))
 
     return items
 
