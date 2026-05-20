@@ -50,26 +50,35 @@ def _build_headers() -> dict:
     }
 
 
-def _fetch_with_scraperapi(url: str) -> tuple[str | None, str]:
-    """Fetch preko ScraperAPI proxy-ja (rezidencijalni IP)."""
+def _fetch_with_scraperapi(url: str, attempt: int = 1) -> tuple[str | None, str]:
+    """Fetch preko ScraperAPI proxy-ja. Premium proxy ako standard pukne."""
     if not SCRAPERAPI_KEY:
         return None, "scraperapi key not configured"
     try:
         params = {
             "api_key": SCRAPERAPI_KEY,
             "url": url,
-            "country_code": "rs",  # srpski IP za lokalne sajtove
         }
+        if attempt > 1:
+            params["premium"] = "true"
+
         resp = requests.get(SCRAPERAPI_ENDPOINT, params=params, timeout=REQUEST_TIMEOUT)
         if resp.status_code == 200:
-            return resp.text, f"scraperapi ok ({len(resp.text)} bytes)"
-        return None, f"scraperapi HTTP {resp.status_code}"
+            tag = "premium" if attempt > 1 else "standard"
+            return resp.text, f"scraperapi {tag} ok ({len(resp.text)} bytes)"
+
+        if resp.status_code == 500 and attempt == 1:
+            print(f"     [fetch] scraperapi standard HTTP 500, retry sa premium proxy")
+            return _fetch_with_scraperapi(url, attempt=2)
+
+        error_snippet = resp.text[:200].replace("\n", " ") if resp.text else "(empty body)"
+        return None, f"scraperapi HTTP {resp.status_code}: {error_snippet}"
     except requests.RequestException as e:
         return None, f"scraperapi exception: {type(e).__name__}: {e}"
 
 
 def _fetch_with_requests(url: str) -> tuple[str | None, str]:
-    """Vraca (html, status_message)."""
+    """Obican requests. Brz, ali Cloudflare ga blokira sa 403."""
     try:
         resp = requests.get(url, headers=_build_headers(), timeout=REQUEST_TIMEOUT)
         if resp.status_code == 200:
@@ -79,14 +88,22 @@ def _fetch_with_requests(url: str) -> tuple[str | None, str]:
         return None, f"requests exception: {type(e).__name__}: {e}"
 
 
-def _fetch_with_playwright(url: str) -> tuple[str | None, str]:
-    """Vraca (html, status_message). Sporiji ali stabilniji fallback."""
+def _fetch_with_playwright_stealth(url: str) -> tuple[str | None, str]:
+    """Playwright sa stealth bibliotekom - probija Cloudflare na kucnom IP-u.
+    Najsporiji ali najpouzdaniji nacin."""
     if not USE_PLAYWRIGHT_FALLBACK:
         return None, "playwright disabled"
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        return None, "playwright not installed"
+        return None, "playwright not installed (pip install playwright)"
+
+    # Stealth je opcioni - radi i bez njega, ali bolje sa
+    try:
+        from playwright_stealth import Stealth
+        stealth = Stealth()
+    except ImportError:
+        stealth = None
 
     try:
         with sync_playwright() as p:
@@ -94,37 +111,43 @@ def _fetch_with_playwright(url: str) -> tuple[str | None, str]:
             context = browser.new_context(
                 user_agent=random.choice(USER_AGENTS),
                 locale="sr-RS",
+                viewport={"width": 1280, "height": 800},
             )
+            if stealth:
+                stealth.apply_stealth_sync(context)
+
             page = context.new_page()
-            response = page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            response = page.goto(url, wait_until="domcontentloaded", timeout=45000)
             status = response.status if response else None
+
+            # Cloudflare ponekad treba 5-10s da prodje
+            page.wait_for_timeout(8000)
+
             html = page.content()
             browser.close()
+
             if status and status != 200:
                 return None, f"playwright HTTP {status}"
-            return html, f"playwright ok ({len(html)} bytes)"
+            if "Just a moment" in html and "QuidditaEnvironment" not in html:
+                return None, f"playwright got Cloudflare challenge ({len(html)} bytes)"
+            return html, f"playwright stealth ok ({len(html)} bytes)"
     except Exception as e:
         return None, f"playwright exception: {type(e).__name__}: {e}"
 
 
 def fetch_page(url: str) -> str | None:
     """Strategija:
-    1. Ako je SCRAPERAPI_KEY postavljen -> koristi ScraperAPI (rezidencijalni IP).
-    2. Inace -> obican requests, pa Playwright kao fallback (samo za lokalno testiranje).
+    1. Ako je SCRAPERAPI_KEY postavljen -> probaj ScraperAPI prvo (brze)
+    2. Inace ili ako ScraperAPI pukne -> Playwright sa stealth (lokalni, kucni IP)
     """
     if SCRAPERAPI_KEY:
         html, msg = _fetch_with_scraperapi(url)
         print(f"     [fetch] {msg}")
-        if html and len(html) > 1000:
+        if html and len(html) > 1000 and "QuidditaEnvironment" in html:
             return html
-        return None
+        print(f"     [fetch] scraperapi nije dao validan HTML, prelazim na playwright stealth")
 
-    html, msg = _fetch_with_requests(url)
-    if html and len(html) > 1000:
-        print(f"     [fetch] {msg}")
-        return html
-    print(f"     [fetch] {msg} -> playwright fallback")
-    html, msg = _fetch_with_playwright(url)
+    html, msg = _fetch_with_playwright_stealth(url)
     print(f"     [fetch] {msg}")
     return html
 
@@ -211,7 +234,13 @@ def _extract_jsonld(soup: BeautifulSoup) -> list[dict]:
 
 
 def parse_listing(html: str) -> ListingData:
-    """Izvlaci strukturirane podatke iz Halo oglasi detail stranice."""
+    """Izvlaci strukturirane podatke iz Halo oglasi detail stranice.
+
+    Strategija (redom po pouzdanosti):
+    1. JSON-LD blok sa schema.org/Product (najstabilniji, standardizovan format)
+    2. QuidditaEnvironment.CurrentClassified -> OtherFields (cena_d, kvadratura_d)
+    3. Meta tagovi (og:title, og:description) za fallback naslova
+    """
     soup = BeautifulSoup(html, "lxml")
 
     title = None
@@ -220,59 +249,68 @@ def parse_listing(html: str) -> ListingData:
     area_m2 = None
     price_per_m2 = None
 
-    # 1. Pokusaj QuidditaEnvironment - najpouzdaniji izvor
-    quiddita = _extract_quiddita_data(html)
-    quiddita_keys = list(quiddita.keys())[:10] if quiddita else None
-    if quiddita:
-        title = quiddita.get("Title") or quiddita.get("TextHtml")
-        price_raw = quiddita.get("Price") or quiddita.get("ListingPriceValue")
-        if price_raw is not None:
-            try:
-                price = float(price_raw)
-            except (TypeError, ValueError):
-                price = _parse_number(str(price_raw))
-        currency = quiddita.get("CurrencyName") or "EUR"
+    # 1. JSON-LD - najstabilniji izvor cene
+    for item in _extract_jsonld(soup):
+        if not isinstance(item, dict):
+            continue
+        if item.get("@type") != "Product":
+            continue
+        if not title:
+            title = item.get("name")
+        offers = item.get("offers")
+        if isinstance(offers, dict):
+            p = offers.get("price")
+            if p is not None and price is None:
+                try:
+                    price = float(p)
+                except (TypeError, ValueError):
+                    price = _parse_number(str(p))
+                currency = offers.get("priceCurrency") or currency
 
-        area_raw = (
+    # 2. QuidditaEnvironment.CurrentClassified -> OtherFields
+    quiddita = _extract_quiddita_data(html)
+    if quiddita:
+        if not title:
+            title = quiddita.get("Title") or quiddita.get("TextHtml")
+
+        other_fields = quiddita.get("OtherFields") or {}
+
+        # Cena: cena_d (numericka vrednost), cena_d_unit_s (valuta)
+        if price is None:
+            cena_raw = other_fields.get("cena_d") or other_fields.get("defaultunit_cena_d")
+            if cena_raw is not None:
+                try:
+                    price = float(cena_raw)
+                except (TypeError, ValueError):
+                    price = _parse_number(str(cena_raw))
+        if not currency:
+            currency = other_fields.get("cena_d_unit_s") or "EUR"
+
+        # Kvadratura
+        kv_raw = (
+            other_fields.get("kvadratura_d") or
+            other_fields.get("defaultunit_kvadratura_d") or
             quiddita.get("Kvadratura") or
-            quiddita.get("kvadratura") or
             quiddita.get("LivingArea")
         )
-        if area_raw is not None:
+        if kv_raw is not None:
             try:
-                area_m2 = float(area_raw)
+                area_m2 = float(kv_raw)
             except (TypeError, ValueError):
-                area_m2 = _parse_number(str(area_raw))
+                area_m2 = _parse_number(str(kv_raw))
 
-    # 2. Backup: JSON-LD
-    if price is None:
-        for item in _extract_jsonld(soup):
-            offers = item.get("offers") if isinstance(item, dict) else None
-            if offers and isinstance(offers, dict):
-                p = offers.get("price")
-                if p:
-                    price = _parse_number(str(p))
-                    currency = offers.get("priceCurrency") or currency
-            if not title and isinstance(item, dict):
-                title = item.get("name") or title
-
-    # 3. Backup: HTML meta tagovi
+    # 3. Fallback: meta tagovi
     if not title:
         og_title = soup.find("meta", property="og:title")
         if og_title:
             title = og_title.get("content")
 
-    if price is None:
-        # Poslednji pokusaj: trazi .property-price ili sl. klase
-        price_el = soup.select_one(".price-value, .property-price, [data-field-name='cena']")
-        if price_el:
-            price = _parse_number(price_el.get_text())
-
     if price is not None and area_m2 and area_m2 > 0:
         price_per_m2 = round(price / area_m2, 2)
 
-    # Debug: ako nema cene, ispisi sta je nadjeno
+    # Debug log kad nema cene
     if price is None:
+        quiddita_keys = list(quiddita.keys())[:10] if quiddita else None
         print(f"     [parse] no price found. quiddita keys: {quiddita_keys}, title: {title!r}, html_len: {len(html)}")
 
     return ListingData(
