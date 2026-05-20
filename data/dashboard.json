@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-20T19:42:13",
+  "generated_at": "2026-05-20T20:09:54",
   "listings": [
     {
       "id": 1,
@@ -16,14 +16,20 @@
       "status": "active",
       "consecutive_errors": 0,
       "first_seen_at": "2026-05-20T19:41:50",
-      "last_checked_at": "2026-05-20T19:42:01",
-      "updated_at": "2026-05-20T19:42:01",
+      "last_checked_at": "2026-05-20T20:09:40",
+      "updated_at": "2026-05-20T20:09:40",
       "history": [
         {
           "price": 85500.0,
           "checked_at": "2026-05-20T19:42:01",
           "change_amount": null,
           "change_percent": null
+        },
+        {
+          "price": 85500.0,
+          "checked_at": "2026-05-20T20:09:40",
+          "change_amount": 0.0,
+          "change_percent": 0.0
         }
       ]
     }
@@ -37,10 +43,10 @@
       "note": "",
       "is_active": 1,
       "created_at": "2026-05-20T19:41:50",
-      "last_checked_at": "2026-05-20T19:42:11",
+      "last_checked_at": "2026-05-20T20:09:51",
       "prefetched": [
         {
-          "id": 1,
+          "id": 21,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-jednoiposoban-stan-45m2-kod-vojne/5425645922564",
           "title": "Na prodaju jednoiposoban stan, 45m2, kod Vojne bol",
@@ -54,10 +60,10 @@
           "description": "Na prodaju jednoiposoban stan, 45m2, na odlicnoj lokaciji, u blizini Vojne bolnice. Sastoji se od ulaznog hodnika, dnevne sobe, trpezarije, kuhinje,...",
           "advertiser_type": "agencija",
           "publish_date": "15.05.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 2,
+          "id": 22,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-jednoiposoban-stan-45m2-kod-vojne/5425645914790",
           "title": "Na prodaju jednoiposoban stan, 45m2, kod Vojne bol",
@@ -71,10 +77,10 @@
           "description": "Na prodaju jednoiposoban stan, 45m2, na odlicnoj lokaciji, u blizini Vojne bolnice. Sastoji se od ulaznog hodnika, dnevne sobe, trpezarije, kuhinje,...",
           "advertiser_type": "agencija",
           "publish_date": "13.05.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 3,
+          "id": 23,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-jednoiposoban-stan-45m2-kod-vojne/5425645914786",
           "title": "Na prodaju jednoiposoban stan, 45m2, kod Vojne bol",
@@ -88,10 +94,10 @@
           "description": "Na prodaju jednoiposoban stan, 45m2, na odlicnoj lokaciji, u blizini Vojne bolnice. Sastoji se od ulaznog hodnika, dnevne sobe, trpezarije, kuhinje,...",
           "advertiser_type": "agencija",
           "publish_date": "13.05.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 4,
+          "id": 24,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/jednosoban-stan-40-m2-na-prestiznoj-lokaciji/5425646883795",
           "title": "Jednosoban stan, 40 m2, na prestižnoj lokaciji",
@@ -105,10 +111,10 @@
           "description": "Stan se nalazi u zgradi na uglu Dragiše Cvetkovića i Sremske ulice, odmah uz park Svetog Save i bulevarske pijace. Svetao. Dvostrano orijentisan (jug...",
           "advertiser_type": "agencija",
           "publish_date": "12.05.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 5,
+          "id": 25,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/jednosoban-stan-40-m2-na-prestiznoj-lokaciji/5425646883787",
           "title": "Jednosoban stan, 40 m2, na prestižnoj lokaciji",
@@ -122,10 +128,10 @@
           "description": "Stan se nalazi u zgradi na uglu Dragiše Cvetkovića i Sremske ulice, odmah uz park Svetog Save i bulevarske pijace. Svetao. Dvostrano orijentisan (jug...",
           "advertiser_type": "agencija",
           "publish_date": "12.05.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 6,
+          "id": 26,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/jednosoban-stan-40-m2-na-prestiznoj-lokaciji/5425646883780",
           "title": "Jednosoban stan, 40 m2, na prestižnoj lokaciji",
@@ -139,10 +145,10 @@
           "description": "Stan se nalazi u zgradi na uglu Dragiše Cvetkovića i Sremske ulice, odmah uz park Svetog Save i bulevarske pijace. Svetao. Dvostrano orijentisan (jug...",
           "advertiser_type": "agencija",
           "publish_date": "12.05.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 7,
+          "id": 27,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/jednoiposoban-stan-sa-pdv-om-u-kvalitetnoj-no/5425647086329",
           "title": "Jednoiposoban stan sa PDV-om u kvalitetnoj novogra",
@@ -156,10 +162,10 @@
           "description": "U ponudi je jednoiposoban stan u novogradnji smeštenoj na dobroj lokaciji, u mirnijem delu grada na Trošarini. Površine je 40m2, nalazi se u...",
           "advertiser_type": "agencija",
           "publish_date": "29.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 8,
+          "id": 28,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/dvoiposoban-stan-sa-pdv-om-u-kvalitetnoj-novo/5425647086328",
           "title": "Dvoiposoban stan sa PDV-om u kvalitetnoj novogradn",
@@ -173,10 +179,10 @@
           "description": "U ponudi je dvoiposoban stan u novogradnji smeštenoj na dobroj lokaciji, u mirnijem delu grada na Trošarini. Površine je 46m2, nalazi se u prizemlju...",
           "advertiser_type": "agencija",
           "publish_date": "29.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 9,
+          "id": 29,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-trosoban-stan-novogradnja-na-trosa/5425646962357",
           "title": "Na prodaju trosoban stan novogradnja na Trošarini",
@@ -190,10 +196,10 @@
           "description": "Na prodaju stan površine 41.88 m² u prizemlju kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u...",
           "advertiser_type": "agencija",
           "publish_date": "29.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 10,
+          "id": 30,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-dvosoban-stan-novogradnja-na-trosa/5425646962360",
           "title": "Na prodaju dvosoban stan novogradnja na Trošarini",
@@ -207,10 +213,10 @@
           "description": "Na prodaju dvosoban stan na trecem spratu kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u...",
           "advertiser_type": "agencija",
           "publish_date": "29.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 11,
+          "id": 31,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-dvosoban-stan-novogradnja-na-trosa/5425646962362",
           "title": "Na prodaju dvosoban stan novogradnja na Trošarini",
@@ -224,10 +230,10 @@
           "description": "Na prodaju dvosoban stan u prizemlju kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u lepo...",
           "advertiser_type": "agencija",
           "publish_date": "29.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 12,
+          "id": 32,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/vojna-bolnica-2-5-42m2/5425644138143",
           "title": "Vojna bolnica, 2.5, 42m2",
@@ -241,10 +247,10 @@
           "description": "Prodaje se dvoiposoban stan površine 42m2 u neposrednoj blizini Vojne bolnice. Nalazi se na poslednjem, šest spratu u nadogradnji. Stan se sastoji od...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 13,
+          "id": 33,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/dvoiposoban-stan-u-stambenom-objektu-dizajnir/5425646949203",
           "title": "Dvoiposoban stan u stambenom objektu dizajniranom",
@@ -258,10 +264,10 @@
           "description": "U ponudi je stambeni objekat spratnosti Su+P+2+Ps, smešten na dobroj lokaciji, u mirnijem delu grada na Trošarini. Prodaje se dvoiposoban stan...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 14,
+          "id": 34,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-trosoban-stan-novogradnja-na-trosa/5425646958629",
           "title": "Na prodaju trosoban stan novogradnja na Trošarini",
@@ -275,10 +281,10 @@
           "description": "Na prodaju stan površine 41.88 m² u prizemlju kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 15,
+          "id": 35,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-dvosoban-stan-novogradnja-na-trosa/5425646958632",
           "title": "Na prodaju dvosoban stan novogradnja na Trošarini",
@@ -292,10 +298,10 @@
           "description": "Na prodaju dvosoban stan na trecem spratu kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 16,
+          "id": 36,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-dvosoban-stan-novogradnja-na-trosa/5425646958634",
           "title": "Na prodaju dvosoban stan novogradnja na Trošarini",
@@ -309,10 +315,10 @@
           "description": "Na prodaju dvosoban stan u prizemlju kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u lepo...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 17,
+          "id": 37,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-trosoban-stan-novogradnja-na-trosa/5425646958619",
           "title": "Na prodaju trosoban stan novogradnja na Trošarini",
@@ -326,10 +332,10 @@
           "description": "Na prodaju stan površine 41.88 m² u prizemlju kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 18,
+          "id": 38,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-dvosoban-stan-novogradnja-na-trosa/5425646958622",
           "title": "Na prodaju dvosoban stan novogradnja na Trošarini",
@@ -343,10 +349,10 @@
           "description": "Na prodaju dvosoban stan na trecem spratu kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 19,
+          "id": 39,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/na-prodaju-dvosoban-stan-novogradnja-na-trosa/5425646958624",
           "title": "Na prodaju dvosoban stan novogradnja na Trošarini",
@@ -360,10 +366,10 @@
           "description": "Na prodaju dvosoban stan u prizemlju kvalitetne novogradnje (Pr + 3), na mirnoj i atraktivnoj lokaciji u naselju Trošarina. Stan se nalazi u lepo...",
           "advertiser_type": "agencija",
           "publish_date": "28.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         },
         {
-          "id": 20,
+          "id": 40,
           "search_id": 1,
           "listing_url": "https://www.halooglasi.com/nekretnine/prodaja-stanova/vojna-bolnica-2-5-42m2/5425644139252",
           "title": "Vojna bolnica, 2.5, 42m2",
@@ -377,7 +383,7 @@
           "description": "Prodaje se dvoiposoban stan površine 42m2 u neposrednoj blizini Vojne bolnice. Nalazi se na poslednjem, šest spratu u nadogradnji. Stan se sastoji od...",
           "advertiser_type": "agencija",
           "publish_date": "27.04.2026.",
-          "last_seen_at": "2026-05-20T19:42:11"
+          "last_seen_at": "2026-05-20T20:09:51"
         }
       ]
     }
