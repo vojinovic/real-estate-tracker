@@ -1,4 +1,6 @@
 """SQLite storage za listings, price history, i searches."""
+from __future__ import annotations
+
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -121,15 +123,23 @@ def get_listing_by_url(url: str):
 
 
 def upsert_listing_from_csv(source: str, url: str, property_type: str, location: str, note: str):
-    """Dodaje novi oglas iz listings.csv ako ne postoji. Ne dira postojeće cene."""
+    """Dodaje novi oglas iz listings.csv ako ne postoji. Ne dira postojeće cene.
+    Ako je oglas bio archived/unavailable, vraca ga u status 'pending' i resetuje errors."""
     existing = get_listing_by_url(url)
     if existing:
-        # Update samo metapodatke koji mogu da se menjaju u CSV-u
         with get_conn() as conn:
+            # Ako je bio archived/unavailable, vrati ga u pending da bi se proverio ponovo
+            new_status = existing["status"]
+            new_errors = existing["consecutive_errors"]
+            if existing["status"] in ("archived", "unavailable"):
+                new_status = "pending"
+                new_errors = 0
+
             conn.execute(
-                """UPDATE listings SET property_type = ?, location = ?, note = ?, updated_at = ?
+                """UPDATE listings SET property_type = ?, location = ?, note = ?,
+                                       status = ?, consecutive_errors = ?, updated_at = ?
                    WHERE url = ?""",
-                (property_type, location, note, now_iso(), url),
+                (property_type, location, note, new_status, new_errors, now_iso(), url),
             )
         return existing["id"]
 
