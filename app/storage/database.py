@@ -56,6 +56,15 @@ CREATE TABLE IF NOT EXISTS seen_listings (
     listing_url TEXT NOT NULL,
     title TEXT,
     price REAL,
+    area_m2 REAL,
+    price_per_m2 REAL,
+    rooms TEXT,
+    floor TEXT,
+    image_url TEXT,
+    location TEXT,
+    description TEXT,
+    advertiser_type TEXT,
+    publish_date TEXT,
     first_seen_at TEXT NOT NULL,
     UNIQUE(search_id, listing_url),
     FOREIGN KEY (search_id) REFERENCES searches(id)
@@ -67,6 +76,15 @@ CREATE TABLE IF NOT EXISTS prefetched_listings (
     listing_url TEXT NOT NULL,
     title TEXT,
     price REAL,
+    area_m2 REAL,
+    price_per_m2 REAL,
+    rooms TEXT,
+    floor TEXT,
+    image_url TEXT,
+    location TEXT,
+    description TEXT,
+    advertiser_type TEXT,
+    publish_date TEXT,
     last_seen_at TEXT NOT NULL,
     UNIQUE(search_id, listing_url),
     FOREIGN KEY (search_id) REFERENCES searches(id)
@@ -278,12 +296,47 @@ def get_seen_urls_for_search(search_id: int) -> set[str]:
         return {r["listing_url"] for r in rows}
 
 
-def add_seen_listing(search_id: int, url: str, title: str, price: float | None):
+def add_seen_listing(search_id: int, item) -> None:
+    """item moze biti dict ili SearchResultItem-like sa atributima."""
+    if hasattr(item, "url"):
+        # SearchResultItem dataclass
+        url = item.url
+        title = item.title
+        price = item.price
+        area_m2 = getattr(item, "area_m2", None)
+        price_per_m2 = getattr(item, "price_per_m2", None)
+        rooms = getattr(item, "rooms", None)
+        floor = getattr(item, "floor", None)
+        image_url = getattr(item, "image_url", None)
+        location = getattr(item, "location", None)
+        description = getattr(item, "description", None)
+        advertiser_type = getattr(item, "advertiser_type", None)
+        publish_date = getattr(item, "publish_date", None)
+    else:
+        # dict
+        url = item["url"]
+        title = item.get("title")
+        price = item.get("price")
+        area_m2 = item.get("area_m2")
+        price_per_m2 = item.get("price_per_m2")
+        rooms = item.get("rooms")
+        floor = item.get("floor")
+        image_url = item.get("image_url")
+        location = item.get("location")
+        description = item.get("description")
+        advertiser_type = item.get("advertiser_type")
+        publish_date = item.get("publish_date")
+
     with get_conn() as conn:
         conn.execute(
-            """INSERT OR IGNORE INTO seen_listings (search_id, listing_url, title, price, first_seen_at)
-               VALUES (?, ?, ?, ?, ?)""",
-            (search_id, url, title, price, now_iso()),
+            """INSERT OR IGNORE INTO seen_listings
+               (search_id, listing_url, title, price, area_m2, price_per_m2,
+                rooms, floor, image_url, location, description, advertiser_type,
+                publish_date, first_seen_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (search_id, url, title, price, area_m2, price_per_m2,
+             rooms, floor, image_url, location, description, advertiser_type,
+             publish_date, now_iso()),
         )
 
 
@@ -297,17 +350,48 @@ def mark_search_checked(search_id: int):
 
 # ---------- Prefetched listings (snapshot of latest search results) ----------
 
-def replace_prefetched_for_search(search_id: int, items: list[dict]):
-    """Brise stare prefetched rezultate za pretragu i upisuje nove.
-    items: list of dicts with keys: url, title, price"""
+def replace_prefetched_for_search(search_id: int, items: list) -> None:
+    """Brise stare prefetched rezultate i upisuje nove.
+    items: list of SearchResultItem ili dict-ova"""
     with get_conn() as conn:
         conn.execute("DELETE FROM prefetched_listings WHERE search_id = ?", (search_id,))
         for item in items:
+            if hasattr(item, "url"):
+                url = item.url
+                title = item.title
+                price = item.price
+                area_m2 = getattr(item, "area_m2", None)
+                price_per_m2 = getattr(item, "price_per_m2", None)
+                rooms = getattr(item, "rooms", None)
+                floor = getattr(item, "floor", None)
+                image_url = getattr(item, "image_url", None)
+                location = getattr(item, "location", None)
+                description = getattr(item, "description", None)
+                advertiser_type = getattr(item, "advertiser_type", None)
+                publish_date = getattr(item, "publish_date", None)
+            else:
+                url = item["url"]
+                title = item.get("title")
+                price = item.get("price")
+                area_m2 = item.get("area_m2")
+                price_per_m2 = item.get("price_per_m2")
+                rooms = item.get("rooms")
+                floor = item.get("floor")
+                image_url = item.get("image_url")
+                location = item.get("location")
+                description = item.get("description")
+                advertiser_type = item.get("advertiser_type")
+                publish_date = item.get("publish_date")
+
             conn.execute(
                 """INSERT OR IGNORE INTO prefetched_listings
-                   (search_id, listing_url, title, price, last_seen_at)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (search_id, item["url"], item.get("title"), item.get("price"), now_iso()),
+                   (search_id, listing_url, title, price, area_m2, price_per_m2,
+                    rooms, floor, image_url, location, description, advertiser_type,
+                    publish_date, last_seen_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (search_id, url, title, price, area_m2, price_per_m2,
+                 rooms, floor, image_url, location, description, advertiser_type,
+                 publish_date, now_iso()),
             )
 
 
