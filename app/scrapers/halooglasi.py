@@ -1,4 +1,6 @@
 """Scraper za halooglasi.com - detail stranice i search rezultati."""
+from __future__ import annotations
+
 import json
 import random
 import re
