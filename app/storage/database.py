@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS listings (
     first_seen_price REAL,
     area_m2 REAL,
     price_per_m2 REAL,
+    image_url TEXT,
+    rooms TEXT,
+    floor TEXT,
     status TEXT DEFAULT 'active',
     consecutive_errors INTEGER DEFAULT 0,
     first_seen_at TEXT NOT NULL,
@@ -177,6 +180,10 @@ def update_listing_after_scrape(
     price: float,
     area_m2: float | None,
     price_per_m2: float | None,
+    image_url: str | None = None,
+    location: str | None = None,
+    rooms: str | None = None,
+    floor: str | None = None,
 ):
     """Update polja iz scrape-a. Postavlja first_seen_price ako još ne postoji."""
     with get_conn() as conn:
@@ -192,12 +199,18 @@ def update_listing_after_scrape(
                    first_seen_price = ?,
                    area_m2 = COALESCE(?, area_m2),
                    price_per_m2 = COALESCE(?, price_per_m2),
+                   image_url = COALESCE(?, image_url),
+                   location = COALESCE(?, location),
+                   rooms = COALESCE(?, rooms),
+                   floor = COALESCE(?, floor),
                    status = 'active',
                    consecutive_errors = 0,
                    last_checked_at = ?,
                    updated_at = ?
                WHERE id = ?""",
-            (title, price, first_seen, area_m2, price_per_m2, now_iso(), now_iso(), listing_id),
+            (title, price, first_seen, area_m2, price_per_m2,
+             image_url, location, rooms, floor,
+             now_iso(), now_iso(), listing_id),
         )
 
 
