@@ -358,7 +358,7 @@ header .generated-at { opacity: 0.6; font-size: 12px; margin-top: 8px; }
   <div class="stats" id="statsContainer"></div>
 
   <div class="tabs">
-    <button class="tab active" data-tab="listings">Pra\u0107eni oglasi</button>
+    <button class="tab active" data-tab="listings">Praćeni oglasi</button>
     <button class="tab" data-tab="searches">Pretrage</button>
     <button class="tab" data-tab="add-listing">Dodaj oglas</button>
     <button class="tab" data-tab="add-search">Dodaj pretragu</button>
@@ -414,7 +414,7 @@ header .generated-at { opacity: 0.6; font-size: 12px; margin-top: 8px; }
         <input type="text" id="newListingCity" placeholder="Nis" value="Nis">
       </div>
       <div class="form-group">
-        <label for="newListingNote">Bele\u0161ka (interni opis)</label>
+        <label for="newListingNote">Beleška (interni opis)</label>
         <input type="text" id="newListingNote" placeholder="npr. Durlan dvosoban">
       </div>
       <button class="btn btn-primary" id="addListingBtn" onclick="addListing()">Dodaj u tracker</button>
@@ -473,7 +473,7 @@ header .generated-at { opacity: 0.6; font-size: 12px; margin-top: 8px; }
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeConfigModal()">Otkazi</button>
-      <button class="btn btn-primary" onclick="saveConfig()">Sa\u010duvaj</button>
+      <button class="btn btn-primary" onclick="saveConfig()">Sačuvaj</button>
     </div>
   </div>
 </div>
@@ -532,22 +532,27 @@ function checkConfigBanner() {
 // ============================================================
 async function loadData() {
   try {
-    // Probaj prvo iz lokalnog dashboard.json (kad se otvori sa GitHub Pages-a)
-    // Pa fallback na GitHub raw URL ako je owner postavljen
-    let url = "data/dashboard.json";
+    // Strategija ucitavanja dashboard.json:
+    // 1. Ako je config.repoOwner postavljen -> GitHub raw URL (radi i lokalno i na GitHub Pages)
+    // 2. Inace -> lokalni put ../data/dashboard.json (radi samo lokalno kada se docs/ otvori preko HTTP servera)
+    let url;
+    if (config.repoOwner) {
+      url = `https://raw.githubusercontent.com/${config.repoOwner}/${config.repoName}/main/data/dashboard.json`;
+    } else {
+      url = "../data/dashboard.json";
+    }
     let response = await fetch(url + "?t=" + Date.now());
 
-    if (!response.ok && config.repoOwner) {
-      url = `https://raw.githubusercontent.com/${config.repoOwner}/${config.repoName}/main/data/dashboard.json`;
-      response = await fetch(url + "?t=" + Date.now());
+    if (!response.ok && !config.repoOwner) {
+      // Lokalni put ne radi (npr. dashboard.json jos nije generisan)
+      throw new Error(`HTTP ${response.status}. Podesi GitHub config gore da ucitas iz repo-a.`);
     }
-
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     dashboardData = await response.json();
     render();
   } catch (err) {
     document.getElementById("listingsGrid").innerHTML =
-      `<div class="empty-state">Ne mogu da u\u010ditam podatke: ${err.message}<br><br>Otvori dashboard kroz GitHub Pages ili podesi GitHub config gore.</div>`;
+      `<div class="empty-state">Ne mogu da učitam podatke: ${err.message}<br><br>Podesi GitHub config (dugme "Postavi" gore) da učitaš iz repo-a.</div>`;
   }
 }
 
@@ -655,15 +660,19 @@ function renderListings() {
 
     const sparkline = renderSparkline(history);
     const priceKlass = (firstPrice && currentPrice && currentPrice < firstPrice) ? "price-drop" : "";
+    const imageStyle = l.image_url ? `background-image:url('${l.image_url}')` : '';
+    const imageClass = l.image_url ? '' : 'no-image';
 
     return `
       <div class="card">
-        <div class="card-image no-image"></div>
+        <div class="card-image ${imageClass}" style="${imageStyle}"></div>
         <div class="card-body">
           <div class="card-title"><a href="${l.url}" target="_blank">${l.title || l.note || "(bez naslova)"}</a></div>
           <div class="card-price ${priceKlass}">${fmtPrice(currentPrice)}${priceChange}</div>
           <div class="card-meta">
             ${l.area_m2 ? `<span>${fmtArea(l.area_m2)}</span>` : ""}
+            ${l.rooms ? `<span>${l.rooms} soba</span>` : ""}
+            ${l.floor ? `<span>${l.floor}</span>` : ""}
             ${l.price_per_m2 ? `<span>${fmtPrice(l.price_per_m2)}/m\u00b2</span>` : ""}
           </div>
           <div class="card-location">${l.location || ""} \u2022 ${l.property_type || ""}</div>
