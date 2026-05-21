@@ -114,6 +114,10 @@ def check_listings():
             price=data.price,
             area_m2=data.area_m2,
             price_per_m2=data.price_per_m2,
+            image_url=data.image_url,
+            location=data.location,
+            rooms=data.rooms,
+            floor=data.floor,
         )
         db.add_price_history(listing["id"], data.price, prev_price)
 
