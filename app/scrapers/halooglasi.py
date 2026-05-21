@@ -28,6 +28,10 @@ class ListingData:
     currency: str | None
     area_m2: float | None
     price_per_m2: float | None
+    image_url: str | None = None
+    location: str | None = None
+    rooms: str | None = None
+    floor: str | None = None
 
 
 @dataclass
@@ -260,8 +264,12 @@ def parse_listing(html: str) -> ListingData:
     currency = None
     area_m2 = None
     price_per_m2 = None
+    image_url = None
+    location = None
+    rooms = None
+    floor = None
 
-    # 1. JSON-LD - najstabilniji izvor cene
+    # 1. JSON-LD - najstabilniji izvor cene i slike
     for item in _extract_jsonld(soup):
         if not isinstance(item, dict):
             continue
@@ -269,6 +277,13 @@ def parse_listing(html: str) -> ListingData:
             continue
         if not title:
             title = item.get("name")
+        # Slika iz JSON-LD
+        if not image_url:
+            img = item.get("image")
+            if isinstance(img, str):
+                image_url = img
+            elif isinstance(img, list) and len(img) > 0:
+                image_url = img[0]
         offers = item.get("offers")
         if isinstance(offers, dict):
             p = offers.get("price")
@@ -311,6 +326,37 @@ def parse_listing(html: str) -> ListingData:
             except (TypeError, ValueError):
                 area_m2 = _parse_number(str(kv_raw))
 
+        # Slika iz ImageURLs liste
+        if not image_url:
+            image_urls = quiddita.get("ImageURLs") or []
+            if isinstance(image_urls, list) and len(image_urls) > 0:
+                first = image_urls[0]
+                # ImageURLs su filename-ovi, treba dodati prefix
+                if first and not first.startswith("http"):
+                    image_url = f"https://img.halooglasi.com/slike/oglasi/Thumbs/{first}"
+                else:
+                    image_url = first
+
+        # Lokacija iz OtherFields
+        if not location:
+            loc_parts = []
+            for key in ["grad_s", "lokacija_s", "mikrolokacija_s", "ulica_t"]:
+                v = other_fields.get(key)
+                if v:
+                    loc_parts.append(str(v))
+            if loc_parts:
+                location = ", ".join(loc_parts)
+
+        # Sobe i sprat
+        if not rooms:
+            rooms_val = other_fields.get("broj_soba_s") or other_fields.get("broj_soba_d")
+            if rooms_val:
+                rooms = str(rooms_val)
+        if not floor:
+            floor_val = other_fields.get("sprat_s") or other_fields.get("spratnost_s")
+            if floor_val:
+                floor = str(floor_val)
+
     # 3. Fallback: meta tagovi
     if not title:
         og_title = soup.find("meta", property="og:title")
@@ -331,6 +377,10 @@ def parse_listing(html: str) -> ListingData:
         currency=currency,
         area_m2=area_m2,
         price_per_m2=price_per_m2,
+        image_url=image_url,
+        location=location,
+        rooms=rooms,
+        floor=floor,
     )
 
 
